@@ -17,14 +17,20 @@ import java.util.concurrent.ExecutionException;
 public class Opdemo1Controller {
 
 	private static final String URL = "http://export.rbc.ru/free/selt.0/free.fcgi?period=DAILY&tickers=USD000000TOD&separator=TAB&data_format=BROWSER";
+	//Мапа для кэширования
+	private Map<String,List<Quote>> result = new HashMap<>();
+	private AsyncHttpClient client = AsyncHttpClientFactory.create(new AsyncHttpClientFactory.AsyncHttpClientConfig());
 
 	@RequestMapping("/quotes")
-	public @ResponseBody
+	public  @ResponseBody
 	List<Quote> quotes(@RequestParam("days") int days) throws ExecutionException, InterruptedException, ParseException {
-		AsyncHttpClient client = AsyncHttpClientFactory.create(new AsyncHttpClientFactory.AsyncHttpClientConfig());
+		//Если у нас такое значение уже закэшировано, возвращаем его
+		if (result.get(String.valueOf(days)) != null){
+			return result.get(String.valueOf(days));
+		}
 		Response response = client.prepareGet(URL + "&lastdays=" + days).execute().get();
 
-		String body = response.getResponseBody();
+ 		String body = response.getResponseBody();
 		String[] lines = body.split("\n");
 
 		List<Quote> quotes = new ArrayList<>();
@@ -97,8 +103,13 @@ public class Opdemo1Controller {
 			quotes.add(quote);
 		}
 		System.out.println();
+		//Кэшируем
+		result.put(String.valueOf(days),quotes);
 		return quotes;
 	}
 
+	public Map<String,List<Quote>> getResult(){
+		return result;
+	}
 }
 
